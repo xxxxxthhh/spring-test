@@ -20,6 +20,6 @@ public class TradeDto {
     private double amount;
     private int ranking;
 
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "tradeDto")
-    private RsEventDto rs_event_tdo;
+    @OneToOne
+    private RsEventDto rs_event_dto;
 }

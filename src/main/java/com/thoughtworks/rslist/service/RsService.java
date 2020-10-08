@@ -59,20 +59,21 @@ public class RsService {
   }
 
   @Transactional //https://www.cnblogs.com/alice-cj/p/10417097.html
-  public void buy(Trade trade) {
-    RsEventDto rsEventDto = rsEventRepository.findById(trade.getRsEventId()).orElse(null);
+  public void buy(Trade trade, int rsEventId) {
+    RsEventDto rsEventDto = rsEventRepository.findById(rsEventId).orElse(null);
     if (rsEventDto == null) {
       throw new RuntimeException();
     }
     TradeDto tradeDtoFound = tradeRepository.findTradeDtoByRanking(trade.getRanking()).orElse(null);
     TradeDto tradeDtoInput = TradeDto.builder().amount(trade.getAmount()).ranking(trade.getRanking())
-        .rs_event_tdo(rsEventDto).build();
+        .rs_event_dto(rsEventDto).build();
     if (tradeDtoFound == null) {
       tradeRepository.save(tradeDtoInput);
     } else if (trade.getAmount() <= tradeDtoFound.getAmount()) {
       throw new RuntimeException();
     } else {
-      rsEventRepository.delete(tradeDtoFound.getRs_event_tdo());
+      rsEventRepository.delete(tradeDtoFound.getRs_event_dto());
+      tradeRepository.delete(tradeDtoFound);
       rsEventRepository.save(rsEventDto);
       tradeRepository.save(tradeDtoInput);
     }
