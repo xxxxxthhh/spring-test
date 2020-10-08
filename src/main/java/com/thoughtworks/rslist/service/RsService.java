@@ -1,5 +1,6 @@
 package com.thoughtworks.rslist.service;
 
+import com.thoughtworks.rslist.domain.RsEvent;
 import com.thoughtworks.rslist.domain.Trade;
 import com.thoughtworks.rslist.domain.Vote;
 import com.thoughtworks.rslist.dto.RsEventDto;
@@ -14,7 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class RsService {
@@ -67,10 +71,30 @@ public class RsService {
       tradeRepository.save(tradeDtoInput);
     } else if (trade.getAmount() <= tradeDtoFound.getAmount()) {
       throw new RuntimeException();
-    }else {
+    } else {
       rsEventRepository.delete(tradeDtoFound.getRs_event_tdo());
       rsEventRepository.save(rsEventDto);
       tradeRepository.save(tradeDtoInput);
     }
+  }
+
+  public List<RsEvent> sort(List<RsEvent> list) {
+    RsEvent[] rsEvents = new RsEvent[list.size()];
+    List<RsEvent> noRankingList = list.stream().filter(e -> e.getRanking() == 0)
+        .collect(Collectors.toList());
+    List<RsEvent> rankingList = list.stream().filter(e -> e.getRanking() != 0)
+        .collect(Collectors.toList());
+    noRankingList.sort((o1, o2) -> o1.getVoteNum() > o2.getVoteNum() ? -1 : 1);
+    rankingList.sort((o1, o2) -> o1.getRanking() > o2.getRanking() ? 1 : -1);
+
+    rankingList.stream().forEach(e -> rsEvents[e.getRanking() - 1] = e);
+    int j = 0;
+    for (int i = 0; i < list.size(); i++) {
+      if (rsEvents[i] == null) {
+        rsEvents[i] = noRankingList.get(j);
+        j++;
+      }
+    }
+    return Stream.of(rsEvents).collect(Collectors.toList());
   }
 }

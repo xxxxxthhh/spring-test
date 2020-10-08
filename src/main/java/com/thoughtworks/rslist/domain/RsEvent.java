@@ -18,4 +18,6 @@ public class RsEvent implements Serializable {
   private int voteNum;
   @NotNull private int userId;
   private int tradeId;
+  private int ranking;
+
 }

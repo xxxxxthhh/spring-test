@@ -20,6 +20,6 @@ public class RsEventDto {
   private int voteNum;
   @ManyToOne private UserDto user;
 
-  @OneToOne (mappedBy = "rs_event_tdo", cascade = CascadeType.ALL)
+  @OneToOne
   private TradeDto tradeDto;
 }
