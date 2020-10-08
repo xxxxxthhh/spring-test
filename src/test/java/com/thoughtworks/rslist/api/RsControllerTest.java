@@ -212,5 +212,10 @@ class RsControllerTest {
     mockMvc.perform(post("/rs/buy/2").contentType(MediaType.APPLICATION_JSON)
         .content(tradeJson))
         .andExpect(status().isOk());
+
+    List<TradeDto> tradeDtoList = tradeRepository.findAll();
+    Assertions.assertEquals(tradeDtoList.size(), 1);
+    Assertions.assertEquals(tradeDtoList.get(0).getAmount(), 150);
+    Assertions.assertEquals(tradeDtoList.get(0).getRanking(), 2);
   }
 }
