@@ -11,5 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Trade {
     private double amount;
-    private int rank;
+    private int ranking;
+    private int rsEventId;
 }

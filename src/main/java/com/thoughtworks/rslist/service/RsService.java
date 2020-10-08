@@ -13,59 +13,64 @@ import com.thoughtworks.rslist.repository.VoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.Optional;
 
 @Service
 public class RsService {
-    final RsEventRepository rsEventRepository;
-    final UserRepository userRepository;
-    final VoteRepository voteRepository;
-    final TradeRepository tradeRepository;
+  final RsEventRepository rsEventRepository;
+  final UserRepository userRepository;
+  final VoteRepository voteRepository;
+  final TradeRepository tradeRepository;
 
-    public RsService(RsEventRepository rsEventRepository, UserRepository userRepository, VoteRepository voteRepository, TradeRepository tradeRepository) {
-        this.rsEventRepository = rsEventRepository;
-        this.userRepository = userRepository;
-        this.voteRepository = voteRepository;
-        this.tradeRepository = tradeRepository;
-    }
+  public RsService(RsEventRepository rsEventRepository, UserRepository userRepository, VoteRepository voteRepository, TradeRepository tradeRepository) {
+    this.rsEventRepository = rsEventRepository;
+    this.userRepository = userRepository;
+    this.voteRepository = voteRepository;
+    this.tradeRepository = tradeRepository;
+  }
 
-    public void vote(Vote vote, int rsEventId) {
-        Optional<RsEventDto> rsEventDto = rsEventRepository.findById(rsEventId);
-        Optional<UserDto> userDto = userRepository.findById(vote.getUserId());
-        if (!rsEventDto.isPresent()
-                || !userDto.isPresent()
-                || vote.getVoteNum() > userDto.get().getVoteNum()) {
-            throw new RuntimeException();
-        }
-        VoteDto voteDto =
-                VoteDto.builder()
-                        .localDateTime(vote.getTime())
-                        .num(vote.getVoteNum())
-                        .rsEvent(rsEventDto.get())
-                        .user(userDto.get())
-                        .build();
-        voteRepository.save(voteDto);
-        UserDto user = userDto.get();
-        user.setVoteNum(user.getVoteNum() - vote.getVoteNum());
-        userRepository.save(user);
-        RsEventDto rsEvent = rsEventDto.get();
-        rsEvent.setVoteNum(rsEvent.getVoteNum() + vote.getVoteNum());
-        rsEventRepository.save(rsEvent);
+  public void vote(Vote vote, int rsEventId) {
+    Optional<RsEventDto> rsEventDto = rsEventRepository.findById(rsEventId);
+    Optional<UserDto> userDto = userRepository.findById(vote.getUserId());
+    if (!rsEventDto.isPresent()
+        || !userDto.isPresent()
+        || vote.getVoteNum() > userDto.get().getVoteNum()) {
+      throw new RuntimeException();
     }
+    VoteDto voteDto =
+        VoteDto.builder()
+            .localDateTime(vote.getTime())
+            .num(vote.getVoteNum())
+            .rsEvent(rsEventDto.get())
+            .user(userDto.get())
+            .build();
+    voteRepository.save(voteDto);
+    UserDto user = userDto.get();
+    user.setVoteNum(user.getVoteNum() - vote.getVoteNum());
+    userRepository.save(user);
+    RsEventDto rsEvent = rsEventDto.get();
+    rsEvent.setVoteNum(rsEvent.getVoteNum() + vote.getVoteNum());
+    rsEventRepository.save(rsEvent);
+  }
 
-    public void buy(Trade trade, int id) {
-        RsEventDto rsEventDto = rsEventRepository.findById(id).orElse(null);
-        if (rsEventDto == null) {
-            throw new RuntimeException();
-        }
-        TradeDto tradeDtoFound = tradeRepository.findTradeDtoByRanking(trade.getRank()).orElse(null);
-        if (tradeDtoFound == null) {
-            TradeDto tradeDto = TradeDto.builder()
-                    .amount(trade.getAmount()).ranking(trade.getRank())
-                    .rs_event_tdo(rsEventDto).build();
-            tradeRepository.save(tradeDto);
-        } else if (trade.getAmount() <= tradeDtoFound.getAmount()) {
-            throw new RuntimeException();
-        }
+  @Transactional //https://www.cnblogs.com/alice-cj/p/10417097.html
+  public void buy(Trade trade) {
+    RsEventDto rsEventDto = rsEventRepository.findById(trade.getRsEventId()).orElse(null);
+    if (rsEventDto == null) {
+      throw new RuntimeException();
     }
+    TradeDto tradeDtoFound = tradeRepository.findTradeDtoByRanking(trade.getRanking()).orElse(null);
+    TradeDto tradeDtoInput = TradeDto.builder().amount(trade.getAmount()).ranking(trade.getRanking())
+        .rs_event_tdo(rsEventDto).build();
+    if (tradeDtoFound == null) {
+      tradeRepository.save(tradeDtoInput);
+    } else if (trade.getAmount() <= tradeDtoFound.getAmount()) {
+      throw new RuntimeException();
+    }else {
+      rsEventRepository.delete(tradeDtoFound.getRs_event_tdo());
+      rsEventRepository.save(rsEventDto);
+      tradeRepository.save(tradeDtoInput);
+    }
+  }
 }

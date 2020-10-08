@@ -110,12 +110,12 @@ class RsServiceTest {
         when(rsEventRepository.findById(anyInt())).thenReturn(Optional.of(rsEventDto));
         when(tradeRepository.findById(anyInt())).thenReturn(Optional.of(tradeDto));
 
-        Trade trade = Trade.builder().amount(tradeDto.getAmount())
-                .rank(tradeDto.getRanking()).build();
+        Trade trade = Trade.builder().amount(tradeDto.getAmount()).rsEventId(1)
+                .ranking(tradeDto.getRanking()).build();
 
         userRepository.save(userDto);
         rsEventRepository.save(rsEventDto);
-        rsService.buy(trade, rsEventDto.getId());
+        rsService.buy(trade);
 
         verify(tradeRepository).save(tradeDto);
     }
@@ -135,12 +135,34 @@ class RsServiceTest {
         when(tradeRepository.findTradeDtoByRanking(anyInt())).thenReturn(Optional.of(tradeDto));
 
 
-        Trade trade = Trade.builder().amount(100)
-                .rank(1).build();
+        Trade trade = Trade.builder().amount(100).rsEventId(1)
+                .ranking(1).build();
         assertThrows(
                 RuntimeException.class,
                 () -> {
-                    rsService.buy(trade, rsEventDto.getId());
+                    rsService.buy(trade);
                 });
     }
+
+  @Test
+  public void when_buy_rs_and_ranking_bought_and_amount_sufficient_then_update_old_trade() {
+    UserDto userDto = UserDto.builder().voteNum(5).phone("18888888888").gender("female")
+        .email("a@b.com").age(19).userName("xiaoli").id(2).build();
+    RsEventDto rsEventDto = RsEventDto.builder().eventName("event name").id(1)
+        .keyword("keyword").voteNum(2).user(userDto).build();
+    TradeDto tradeDtoOld = TradeDto.builder().amount(200).ranking(1)
+        .rs_event_tdo(rsEventDto).build();
+    when(rsEventRepository.findById(anyInt())).thenReturn(Optional.of(rsEventDto));
+    when(tradeRepository.findTradeDtoByRanking(anyInt())).thenReturn(Optional.of(tradeDtoOld));
+
+    Trade tradeNew = Trade.builder().amount(300).ranking(1).rsEventId(1).build();
+    TradeDto tradeDtoNew = TradeDto.builder()
+        .amount(tradeNew.getAmount()).ranking(tradeNew.getRanking())
+        .rs_event_tdo(rsEventDto).build();
+    rsService.buy(tradeNew);
+
+    verify(rsEventRepository).delete(tradeDtoOld.getRs_event_tdo());
+    verify(rsEventRepository).save(tradeDtoNew.getRs_event_tdo());
+    verify(tradeRepository).save(tradeDtoNew);
+  }
 }
