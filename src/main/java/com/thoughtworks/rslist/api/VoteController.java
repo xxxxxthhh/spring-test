@@ -15,22 +15,23 @@ import java.util.stream.Collectors;
 
 @RestController
 public class VoteController {
-  @Autowired VoteRepository voteRepository;
+    @Autowired
+    VoteRepository voteRepository;
 
-  @GetMapping("/voteRecord")
-  public ResponseEntity<List<Vote>> getVoteRecord(
-      @RequestParam int userId, @RequestParam int rsEventId, @RequestParam int pageIndex) {
-    Pageable pageable = PageRequest.of(pageIndex - 1, 5);
-    return ResponseEntity.ok(
-        voteRepository.findAllByUserIdAndRsEventId(userId, rsEventId, pageable).stream()
-            .map(
-                item ->
-                    Vote.builder()
-                        .voteNum(item.getNum())
-                        .userId(item.getUser().getId())
-                        .time(item.getLocalDateTime())
-                        .rsEventId(item.getRsEvent().getId())
-                        .build())
-            .collect(Collectors.toList()));
-  }
+    @GetMapping("/voteRecord")
+    public ResponseEntity<List<Vote>> getVoteRecord(
+            @RequestParam int userId, @RequestParam int rsEventId, @RequestParam int pageIndex) {
+        Pageable pageable = PageRequest.of(pageIndex - 1, 5);
+        return ResponseEntity.ok(
+                voteRepository.findAllByUserIdAndRsEventId(userId, rsEventId, pageable).stream()
+                        .map(
+                                item ->
+                                        Vote.builder()
+                                                .voteNum(item.getNum())
+                                                .userId(item.getUser().getId())
+                                                .time(item.getLocalDateTime())
+                                                .rsEventId(item.getRsEvent().getId())
+                                                .build())
+                        .collect(Collectors.toList()));
+    }
 }
